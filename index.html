@@ -2,17 +2,30 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="プロンプトエンジニア">
   <title>AIプロンプトエンジニア</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+    }
+
     @keyframes fade-in {
       from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(20px);
       }
       to {
         opacity: 1;
@@ -20,28 +33,82 @@
       }
     }
     
+    @keyframes slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+      }
+    }
+    
     .animate-fade-in {
-      animation: fade-in 0.3s ease-out;
+      animation: fade-in 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+    }
+
+    .animate-slide-in {
+      animation: slide-in 0.3s ease-out;
+    }
+
+    .glass {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .glass-light {
+      background: rgba(248, 250, 252, 0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(203, 213, 225, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.95);
     }
 
     input[type="range"]::-webkit-slider-thumb {
       appearance: none;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      background: #2563eb;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
     }
 
     input[type="range"]::-moz-range-thumb {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      background: #2563eb;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       cursor: pointer;
       border: none;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+    }
+
+    textarea, input, select {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    textarea {
+      resize: none;
     }
   </style>
 </head>
@@ -49,26 +116,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState } = React;
-
-    // SVG Icons
-    const CopyIcon = () => (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-      </svg>
-    );
-
-    const CheckIcon = () => (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-    );
-
-    const SparklesIcon = () => (
-      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    );
+    const { useState, useEffect } = React;
 
     function PromptGenerator() {
       const [role, setRole] = useState('');
@@ -80,7 +128,7 @@
       const [activeStep, setActiveStep] = useState(1);
 
       const formatOptions = [
-        { id: 'paragraph', label: '段落形式', icon: '📄' },
+        { id: 'paragraph', label: '段落', icon: '📄' },
         { id: 'markdown', label: 'Markdown', icon: '≡' },
         { id: 'table', label: 'テーブル', icon: '⊞' },
         { id: 'code', label: 'コード', icon: '</>' }
@@ -95,15 +143,8 @@
 
       const generatePrompt = () => {
         let prompt = '';
-        
-        if (role) {
-          prompt += `# Role\n${role}\n\n`;
-        }
-        
-        if (instruction) {
-          prompt += `# Task\n${instruction}\n\n`;
-        }
-        
+        if (role) prompt += `# Role\n${role}\n\n`;
+        if (instruction) prompt += `# Task\n${instruction}\n\n`;
         if (format.length > 0) {
           prompt += `# Output Format\n`;
           format.forEach(f => {
@@ -117,7 +158,6 @@
           });
           prompt += '\n';
         }
-        
         if (constraints.wordCount || constraints.tone || constraints.forbidden) {
           prompt += `# Constraints\n`;
           if (constraints.wordCount) prompt += `- Word Count: approximately ${constraints.wordCount} words\n`;
@@ -135,11 +175,9 @@
           if (constraints.forbidden) prompt += `- Avoid: ${constraints.forbidden}\n`;
           prompt += '\n';
         }
-        
         if (chain) {
           prompt += `# Reasoning Process\nUse step-by-step thinking:\n1. Define the scope\n2. Collect relevant data\n3. Look for patterns\n4. Synthesize the conclusion\n`;
         }
-        
         return prompt;
       };
 
@@ -152,238 +190,236 @@
       };
 
       const steps = [
-        { num: 1, label: '役割' },
-        { num: 2, label: '命令' },
-        { num: 3, label: '形式' },
-        { num: 4, label: '制約' },
-        { num: 5, label: '思考' }
+        { num: 1, label: '役割', bg: 'from-blue-600 to-blue-700' },
+        { num: 2, label: '命令', bg: 'from-purple-600 to-purple-700' },
+        { num: 3, label: '形式', bg: 'from-pink-600 to-pink-700' },
+        { num: 4, label: '制約', bg: 'from-green-600 to-green-700' },
+        { num: 5, label: '思考', bg: 'from-indigo-600 to-indigo-700' }
       ];
 
       return (
-        <div className="min-h-screen bg-white dark:bg-slate-950 font-sans transition-colors">
-          <div className="max-w-5xl mx-auto px-6 py-16 lg:py-24">
-            {/* Header */}
-            <div className="mb-20">
-              <div className="flex items-center gap-2 mb-4">
-                <SparklesIcon />
-                <span className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-tight">プロンプトエンジニア</span>
+        <div className="min-h-screen pb-20" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
+          {/* Header */}
+          <div className="sticky top-0 z-50 glass border-b border-slate-700/50 pt-2 pb-4 px-4">
+            <div className="text-center">
+              <div className="text-3xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
+                ✨ プロンプト
               </div>
-              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-                プロンプトを<br />構築する
-              </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl">
-                5つの構成要素を入力して、Claude や GPT に送信できる英文プロンプトを生成します。
-              </p>
+              <div className="text-xs text-slate-400 tracking-widest">AI エンジニア</div>
             </div>
+          </div>
 
-            {/* Progress Indicator */}
-            <div className="mb-16">
-              <div className="flex justify-between gap-3">
+          <div className="px-4 pt-8">
+            {/* Progress Bar */}
+            <div className="mb-8">
+              <div className="flex justify-between gap-1 mb-3">
                 {steps.map((step) => (
                   <button
                     key={step.num}
                     onClick={() => setActiveStep(step.num)}
-                    className={`flex-1 py-3 px-4 rounded-lg transition-all duration-300 text-center text-sm font-semibold ${
+                    className={`flex-1 py-3 rounded-xl transition-all duration-300 font-bold text-xs ${
                       activeStep === step.num
-                        ? 'bg-blue-600 text-white dark:bg-blue-500'
-                        : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
+                        ? `bg-gradient-to-r ${step.bg} text-white shadow-lg`
+                        : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
                     }`}
                   >
-                    {step.num}. {step.label}
+                    <div className="text-lg mb-0.5">{step.num}</div>
+                    <div>{step.label}</div>
                   </button>
                 ))}
               </div>
+              <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+                  style={{ width: `${(activeStep / 5) * 100}%` }}
+                />
+              </div>
             </div>
 
-            {/* Input sections */}
-            <div className="mb-20">
-              {/* Step 1: Role */}
+            {/* Input Sections */}
+            <div className="animate-fade-in">
               {activeStep === 1 && (
-                <div className="animate-fade-in">
-                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">役割を定義</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">AI の思考の方向性を定めます</p>
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">役割を定義</h2>
+                    <p className="text-sm text-slate-400 mb-4">AI の思考の方向性</p>
+                  </div>
                   <textarea
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    placeholder="例: ファッションブランド向けの経験豊富なマーケティングアナリスト"
-                    className="w-full p-4 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none"
-                    rows="4"
+                    placeholder="例: ファッションブランド向けのマーケティングアナリスト"
+                    className="w-full glass rounded-2xl p-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[140px]"
                   />
                 </div>
               )}
 
-              {/* Step 2: Instruction */}
               {activeStep === 2 && (
-                <div className="animate-fade-in">
-                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">命令を指定</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">分析または実行する内容を詳しく説明します</p>
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">命令を指定</h2>
+                    <p className="text-sm text-slate-400 mb-4">実行する内容を詳しく</p>
+                  </div>
                   <textarea
                     value={instruction}
                     onChange={(e) => setInstruction(e.target.value)}
-                    placeholder="例: サステナブル素材の市場トレンドを分析し、主要な発見をまとめてください。"
-                    className="w-full p-4 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none"
-                    rows="4"
+                    placeholder="例: サステナブル素材の市場トレンドを分析"
+                    className="w-full glass rounded-2xl p-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base min-h-[140px]"
                   />
                 </div>
               )}
 
-              {/* Step 3: Format */}
               {activeStep === 3 && (
-                <div className="animate-fade-in">
-                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">出力形式を選択</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">複数選択可能です</p>
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">形式を選択</h2>
+                    <p className="text-sm text-slate-400 mb-4">複数選択可能</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     {formatOptions.map((opt) => (
                       <button
                         key={opt.id}
                         onClick={() => toggleFormat(opt.id)}
-                        className={`p-4 rounded-xl border-2 transition-all text-center ${
+                        className={`p-4 rounded-xl transition-all duration-200 text-center ${
                           format.includes(opt.id)
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-400'
-                            : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 bg-gray-50 dark:bg-slate-900'
+                            ? 'glass ring-2 ring-pink-500 bg-pink-500/10'
+                            : 'glass hover:bg-slate-700/50'
                         }`}
                       >
                         <div className="text-3xl mb-2">{opt.icon}</div>
-                        <div className={`text-sm font-semibold ${format.includes(opt.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>{opt.label}</div>
+                        <div className="text-xs font-semibold">{opt.label}</div>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Step 4: Constraints */}
               {activeStep === 4 && (
-                <div className="animate-fade-in">
-                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">制約を設定</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">出力の範囲や条件を定めます</p>
-                  <div className="space-y-8">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">文字数（単語数）</label>
-                      <div className="flex items-center gap-6">
-                        <input
-                          type="range"
-                          min="50"
-                          max="2000"
-                          step="50"
-                          value={constraints.wordCount}
-                          onChange={(e) => setConstraints({...constraints, wordCount: parseInt(e.target.value)})}
-                          className="flex-1 h-2 bg-gray-300 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-blue-600"
-                        />
-                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400 w-20 text-right">{constraints.wordCount}</span>
-                      </div>
-                    </div>
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">制約を設定</h2>
+                    <p className="text-sm text-slate-400 mb-4">出力の範囲と条件</p>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">トーン</label>
-                      <select
-                        value={constraints.tone}
-                        onChange={(e) => setConstraints({...constraints, tone: e.target.value})}
-                        className="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {toneOptions.map(t => <option key={t}>{t}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">トーンレベル</label>
-                      <div className="flex gap-3">
-                        {toneLevels.map(level => (
-                          <button
-                            key={level}
-                            onClick={() => setConstraints({...constraints, toneLevel: level})}
-                            className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
-                              constraints.toneLevel === level
-                                ? 'bg-blue-600 text-white dark:bg-blue-500'
-                                : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                            }`}
-                          >
-                            {level}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">避けるべき表現</label>
+                  <div>
+                    <label className="block text-sm font-semibold mb-3">文字数</label>
+                    <div className="flex items-center gap-4">
                       <input
-                        type="text"
-                        value={constraints.forbidden}
-                        onChange={(e) => setConstraints({...constraints, forbidden: e.target.value})}
-                        placeholder="ジェネリックなバズワード..."
-                        className="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        type="range"
+                        min="50"
+                        max="2000"
+                        step="50"
+                        value={constraints.wordCount}
+                        onChange={(e) => setConstraints({...constraints, wordCount: parseInt(e.target.value)})}
+                        className="flex-1"
                       />
+                      <span className="text-2xl font-bold text-blue-400 w-20 text-right">{constraints.wordCount}</span>
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-3">トーン</label>
+                    <select
+                      value={constraints.tone}
+                      onChange={(e) => setConstraints({...constraints, tone: e.target.value})}
+                      className="w-full glass rounded-xl p-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      {toneOptions.map(t => <option key={t} className="bg-slate-900">{t}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-3">レベル</label>
+                    <div className="flex gap-2">
+                      {toneLevels.map(level => (
+                        <button
+                          key={level}
+                          onClick={() => setConstraints({...constraints, toneLevel: level})}
+                          className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${
+                            constraints.toneLevel === level
+                              ? 'bg-gradient-to-r from-green-600 to-green-700 text-white'
+                              : 'glass'
+                          }`}
+                        >
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-3">避ける表現</label>
+                    <input
+                      type="text"
+                      value={constraints.forbidden}
+                      onChange={(e) => setConstraints({...constraints, forbidden: e.target.value})}
+                      placeholder="ジェネリックなバズワード..."
+                      className="w-full glass rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Step 5: Chain */}
               {activeStep === 5 && (
-                <div className="animate-fade-in">
-                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">連鎖思考を有効化</h2>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">ステップバイステップの推論を促します</p>
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">連鎖思考</h2>
+                    <p className="text-sm text-slate-400 mb-4">ステップバイステップの推論</p>
+                  </div>
                   <button
                     onClick={() => setChain(!chain)}
-                    className={`w-full p-6 rounded-xl border-2 transition-all text-center font-semibold ${
+                    className={`w-full p-6 rounded-2xl transition-all duration-200 font-bold text-lg ${
                       chain
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
-                        : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:border-gray-400'
+                        ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 ring-2 ring-indigo-400'
+                        : 'glass hover:bg-slate-700/50'
                     }`}
                   >
                     <div className="flex items-center justify-center gap-3">
-                      <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${chain ? 'bg-blue-500 border-blue-500' : 'border-gray-400'}`}>
-                        {chain && <CheckIcon />}
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${chain ? 'bg-indigo-400 border-indigo-400' : 'border-slate-500'}`}>
+                        {chain && <span className="text-indigo-900">✓</span>}
                       </div>
-                      <span>ステップバイステップの思考を使用する</span>
+                      <span>{chain ? '有効 🚀' : 'クリックして有効化'}</span>
                     </div>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Generated Prompt Section */}
-            <div className="mb-16">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">生成されたプロンプト</h2>
+            {/* Generated Prompt */}
+            <div className="mt-10 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">プロンプト</h2>
                 <button
                   onClick={handleCopy}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold ${
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
                     copied
-                      ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
+                      ? 'bg-green-600 text-white'
+                      : 'btn-primary text-white'
                   }`}
                 >
-                  {copied ? (
-                    <>
-                      <CheckIcon /> コピーしました
-                    </>
-                  ) : (
-                    <>
-                      <CopyIcon /> コピー
-                    </>
-                  )}
+                  {copied ? '✓ コピー済み' : '📋 コピー'}
                 </button>
               </div>
-              
-              <div className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-xl p-6 font-mono text-sm text-gray-800 dark:text-gray-200 max-h-96 overflow-y-auto whitespace-pre-wrap break-words leading-relaxed">
-                {prompt || <span className="text-gray-500 italic">入力内容に応じてプロンプトが生成されます</span>}
+
+              <div className="glass rounded-2xl p-4 min-h-[200px] max-h-[300px] overflow-y-auto">
+                <code className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
+                  {prompt || '入力に応じて生成されます'}
+                </code>
               </div>
             </div>
 
-            {/* Navigation buttons */}
-            <div className="flex justify-between gap-4">
+            {/* Navigation */}
+            <div className="flex gap-3 mb-8">
               <button
                 onClick={() => setActiveStep(Math.max(1, activeStep - 1))}
                 disabled={activeStep === 1}
-                className="px-6 py-3 font-semibold rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 rounded-xl glass font-bold disabled:opacity-30"
               >
                 ← 戻る
               </button>
-              
               <button
                 onClick={() => setActiveStep(Math.min(5, activeStep + 1))}
                 disabled={activeStep === 5}
-                className="px-6 py-3 font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 rounded-xl btn-primary text-white font-bold disabled:opacity-30"
               >
                 次へ →
               </button>
