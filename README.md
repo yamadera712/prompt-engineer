@@ -25,6 +25,10 @@
 
 ## 🚀 使い方
 
+### Web で直接アクセス
+
+👉 **[https://USERNAME.github.io/prompt-engineer/](https://USERNAME.github.io/prompt-engineer/)**
+
 ブラウザで開くだけ。インストール不要です！
 
 ### ステップバイステップ
