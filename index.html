@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIプロンプトエンジニア</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #2563eb;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #2563eb;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // SVG Icons
+    const CopyIcon = () => (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+    );
+
+    const CheckIcon = () => (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    );
+
+    const SparklesIcon = () => (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    );
+
+    function PromptGenerator() {
+      const [role, setRole] = useState('');
+      const [instruction, setInstruction] = useState('');
+      const [format, setFormat] = useState([]);
+      const [constraints, setConstraints] = useState({ wordCount: 300, tone: 'プロフェッショナル', toneLevel: '高', forbidden: '' });
+      const [chain, setChain] = useState(false);
+      const [copied, setCopied] = useState(false);
+      const [activeStep, setActiveStep] = useState(1);
+
+      const formatOptions = [
+        { id: 'paragraph', label: '段落形式', icon: '📄' },
+        { id: 'markdown', label: 'Markdown', icon: '≡' },
+        { id: 'table', label: 'テーブル', icon: '⊞' },
+        { id: 'code', label: 'コード', icon: '</>' }
+      ];
+
+      const toneOptions = ['プロフェッショナル', 'カジュアル', 'アカデミック', 'クリエイティブ', 'テクニカル'];
+      const toneLevels = ['低', '中', '高'];
+
+      const toggleFormat = (id) => {
+        setFormat(format.includes(id) ? format.filter(f => f !== id) : [...format, id]);
+      };
+
+      const generatePrompt = () => {
+        let prompt = '';
+        
+        if (role) {
+          prompt += `# Role\n${role}\n\n`;
+        }
+        
+        if (instruction) {
+          prompt += `# Task\n${instruction}\n\n`;
+        }
+        
+        if (format.length > 0) {
+          prompt += `# Output Format\n`;
+          format.forEach(f => {
+            const formatMap = {
+              'paragraph': 'Paragraph',
+              'markdown': 'Markdown',
+              'table': 'Detailed Table',
+              'code': 'Code (JSON/Python)'
+            };
+            prompt += `- ${formatMap[f]}\n`;
+          });
+          prompt += '\n';
+        }
+        
+        if (constraints.wordCount || constraints.tone || constraints.forbidden) {
+          prompt += `# Constraints\n`;
+          if (constraints.wordCount) prompt += `- Word Count: approximately ${constraints.wordCount} words\n`;
+          if (constraints.tone) {
+            const toneMap = {
+              'プロフェッショナル': 'Professional',
+              'カジュアル': 'Casual',
+              'アカデミック': 'Academic',
+              'クリエイティブ': 'Creative',
+              'テクニカル': 'Technical'
+            };
+            const levelMap = { '低': 'Low', '中': 'Medium', '高': 'High' };
+            prompt += `- Tone: ${toneMap[constraints.tone]} (Level: ${levelMap[constraints.toneLevel]})\n`;
+          }
+          if (constraints.forbidden) prompt += `- Avoid: ${constraints.forbidden}\n`;
+          prompt += '\n';
+        }
+        
+        if (chain) {
+          prompt += `# Reasoning Process\nUse step-by-step thinking:\n1. Define the scope\n2. Collect relevant data\n3. Look for patterns\n4. Synthesize the conclusion\n`;
+        }
+        
+        return prompt;
+      };
+
+      const prompt = generatePrompt();
+
+      const handleCopy = () => {
+        navigator.clipboard.writeText(prompt);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      const steps = [
+        { num: 1, label: '役割' },
+        { num: 2, label: '命令' },
+        { num: 3, label: '形式' },
+        { num: 4, label: '制約' },
+        { num: 5, label: '思考' }
+      ];
+
+      return (
+        <div className="min-h-screen bg-white dark:bg-slate-950 font-sans transition-colors">
+          <div className="max-w-5xl mx-auto px-6 py-16 lg:py-24">
+            {/* Header */}
+            <div className="mb-20">
+              <div className="flex items-center gap-2 mb-4">
+                <SparklesIcon />
+                <span className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-tight">プロンプトエンジニア</span>
+              </div>
+              <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+                プロンプトを<br />構築する
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl">
+                5つの構成要素を入力して、Claude や GPT に送信できる英文プロンプトを生成します。
+              </p>
+            </div>
+
+            {/* Progress Indicator */}
+            <div className="mb-16">
+              <div className="flex justify-between gap-3">
+                {steps.map((step) => (
+                  <button
+                    key={step.num}
+                    onClick={() => setActiveStep(step.num)}
+                    className={`flex-1 py-3 px-4 rounded-lg transition-all duration-300 text-center text-sm font-semibold ${
+                      activeStep === step.num
+                        ? 'bg-blue-600 text-white dark:bg-blue-500'
+                        : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {step.num}. {step.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Input sections */}
+            <div className="mb-20">
+              {/* Step 1: Role */}
+              {activeStep === 1 && (
+                <div className="animate-fade-in">
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">役割を定義</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8">AI の思考の方向性を定めます</p>
+                  <textarea
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    placeholder="例: ファッションブランド向けの経験豊富なマーケティングアナリスト"
+                    className="w-full p-4 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none"
+                    rows="4"
+                  />
+                </div>
+              )}
+
+              {/* Step 2: Instruction */}
+              {activeStep === 2 && (
+                <div className="animate-fade-in">
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">命令を指定</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8">分析または実行する内容を詳しく説明します</p>
+                  <textarea
+                    value={instruction}
+                    onChange={(e) => setInstruction(e.target.value)}
+                    placeholder="例: サステナブル素材の市場トレンドを分析し、主要な発見をまとめてください。"
+                    className="w-full p-4 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none"
+                    rows="4"
+                  />
+                </div>
+              )}
+
+              {/* Step 3: Format */}
+              {activeStep === 3 && (
+                <div className="animate-fade-in">
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">出力形式を選択</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8">複数選択可能です</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {formatOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => toggleFormat(opt.id)}
+                        className={`p-4 rounded-xl border-2 transition-all text-center ${
+                          format.includes(opt.id)
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-400'
+                            : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 bg-gray-50 dark:bg-slate-900'
+                        }`}
+                      >
+                        <div className="text-3xl mb-2">{opt.icon}</div>
+                        <div className={`text-sm font-semibold ${format.includes(opt.id) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>{opt.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Constraints */}
+              {activeStep === 4 && (
+                <div className="animate-fade-in">
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">制約を設定</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8">出力の範囲や条件を定めます</p>
+                  <div className="space-y-8">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">文字数（単語数）</label>
+                      <div className="flex items-center gap-6">
+                        <input
+                          type="range"
+                          min="50"
+                          max="2000"
+                          step="50"
+                          value={constraints.wordCount}
+                          onChange={(e) => setConstraints({...constraints, wordCount: parseInt(e.target.value)})}
+                          className="flex-1 h-2 bg-gray-300 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-blue-600"
+                        />
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400 w-20 text-right">{constraints.wordCount}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">トーン</label>
+                      <select
+                        value={constraints.tone}
+                        onChange={(e) => setConstraints({...constraints, tone: e.target.value})}
+                        className="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {toneOptions.map(t => <option key={t}>{t}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">トーンレベル</label>
+                      <div className="flex gap-3">
+                        {toneLevels.map(level => (
+                          <button
+                            key={level}
+                            onClick={() => setConstraints({...constraints, toneLevel: level})}
+                            className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                              constraints.toneLevel === level
+                                ? 'bg-blue-600 text-white dark:bg-blue-500'
+                                : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                            }`}
+                          >
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">避けるべき表現</label>
+                      <input
+                        type="text"
+                        value={constraints.forbidden}
+                        onChange={(e) => setConstraints({...constraints, forbidden: e.target.value})}
+                        placeholder="ジェネリックなバズワード..."
+                        className="w-full p-3 border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Chain */}
+              {activeStep === 5 && (
+                <div className="animate-fade-in">
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">連鎖思考を有効化</h2>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8">ステップバイステップの推論を促します</p>
+                  <button
+                    onClick={() => setChain(!chain)}
+                    className={`w-full p-6 rounded-xl border-2 transition-all text-center font-semibold ${
+                      chain
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
+                        : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-slate-900 text-gray-700 dark:text-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-3">
+                      <div className={`w-6 h-6 rounded border-2 flex items-center justify-center ${chain ? 'bg-blue-500 border-blue-500' : 'border-gray-400'}`}>
+                        {chain && <CheckIcon />}
+                      </div>
+                      <span>ステップバイステップの思考を使用する</span>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Generated Prompt Section */}
+            <div className="mb-16">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">生成されたプロンプト</h2>
+                <button
+                  onClick={handleCopy}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold ${
+                    copied
+                      ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600'
+                  }`}
+                >
+                  {copied ? (
+                    <>
+                      <CheckIcon /> コピーしました
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon /> コピー
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              <div className="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-gray-700 rounded-xl p-6 font-mono text-sm text-gray-800 dark:text-gray-200 max-h-96 overflow-y-auto whitespace-pre-wrap break-words leading-relaxed">
+                {prompt || <span className="text-gray-500 italic">入力内容に応じてプロンプトが生成されます</span>}
+              </div>
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="flex justify-between gap-4">
+              <button
+                onClick={() => setActiveStep(Math.max(1, activeStep - 1))}
+                disabled={activeStep === 1}
+                className="px-6 py-3 font-semibold rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← 戻る
+              </button>
+              
+              <button
+                onClick={() => setActiveStep(Math.min(5, activeStep + 1))}
+                disabled={activeStep === 5}
+                className="px-6 py-3 font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                次へ →
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<PromptGenerator />);
+  </script>
+</body>
+</html>
