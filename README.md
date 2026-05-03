@@ -27,7 +27,7 @@
 
 ### Web で直接アクセス
 
-👉 **[https://USERNAME.github.io/prompt-engineer/](https://USERNAME.github.io/prompt-engineer/)**
+👉 **[https://yamadera712.github.io/prompt-engineer/)**
 
 ブラウザで開くだけ。インストール不要です！
 
